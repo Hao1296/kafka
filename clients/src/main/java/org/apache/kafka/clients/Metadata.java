@@ -53,6 +53,10 @@ import java.util.stream.Collectors;
 import static org.apache.kafka.common.record.RecordBatch.NO_PARTITION_LEADER_EPOCH;
 
 /**
+ * Metadata 封装了元数据更新的逻辑框架。其有两个子类：
+ * 1. ProducerMetadata：维护一个 Topic 集合，对应的producer仅需要该集合所涉及的元数据；
+ * 2. ConsumerMetadata：【待梳理】
+ *
  * A class encapsulating some of the logic around metadata.
  * <p>
  * This class is shared by the client thread (for partitioning) and the background sender thread.
@@ -187,14 +191,14 @@ public class Metadata implements Closeable {
     /**
      * Request an update of the current cluster metadata info, permitting backoff based on the number of
      * equivalent metadata responses, which indicates that responses did not make progress and may be stale.
-     * 
+     *
      * @param resetEquivalentResponseBackoff Whether to reset backing off based on consecutive equivalent responses.
      *                                       This should be set to <i>false</i> in situations where the update is
      *                                       being requested to retry an operation, such as when the leader has
      *                                       changed. It should be set to <i>true</i> in situations where new
      *                                       metadata is being requested, such as adding a topic to a subscription.
      *                                       In situations where it's not clear, it's best to use <i>true</i>.
-     * 
+     *
      * @return The current updateVersion before the update
      */
     public synchronized int requestUpdate(final boolean resetEquivalentResponseBackoff) {
@@ -325,6 +329,8 @@ public class Metadata implements Closeable {
     }
 
     /**
+     * 被误解该方法的名字，"update" 指的是收到MetadataResponse后对本地数据的更新，即回调；而不是发起 MetadataRequest。
+     *
      * Updates the cluster metadata. If topic expiry is enabled, expiry time
      * is set for topics if required and expired topics are removed from the metadata.
      *

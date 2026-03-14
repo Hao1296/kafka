@@ -68,6 +68,9 @@ public final class ProducerBatch {
     final ProduceRequestResult produceFuture;
 
     private final List<Thunk> thunks = new ArrayList<>();
+    /**
+     * “开放追加”阶段维护消息数据，用于最终构建 MemoryRecords 对象
+     */
     private final MemoryRecordsBuilder recordsBuilder;
     private final AtomicInteger attempts = new AtomicInteger(0);
     private final boolean isSplitBatch;

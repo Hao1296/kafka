@@ -399,7 +399,9 @@ public class Sender implements Runnable {
         long notReadyTimeout = Long.MAX_VALUE;
         while (iter.hasNext()) {
             Node node = iter.next();
+            // 此处是在检查 connection 是否 ready
             if (!this.client.ready(node, now)) {
+                // 不 ready 的就在此轮发起 SYN，并在后续迭代中尝试发送消息数据
                 // Update just the readyTimeMs of the latency stats, so that it moves forward
                 // every time the batch is ready (then the difference between readyTimeMs and
                 // drainTimeMs would represent how long data is waiting for the node).
@@ -449,6 +451,8 @@ public class Sender implements Runnable {
             // otherwise the select time will be the time difference between now and the metadata expiry time;
             pollTimeout = 0;
         }
+
+        // 构造请求+将请求追加到client的操作发生在这里
         sendProduceRequests(batches, now);
         return pollTimeout;
     }

@@ -545,6 +545,7 @@ public class NetworkClient implements KafkaClient {
     // package-private for testing
     void sendInternalMetadataRequest(MetadataRequest.Builder builder, String nodeConnectionId, long now) {
         ClientRequest clientRequest = newClientRequest(nodeConnectionId, builder, now, true);
+        // 将 MetadataRequest 追加到 Selector
         doSend(clientRequest, true, now);
     }
 
@@ -639,7 +640,9 @@ public class NetworkClient implements KafkaClient {
             return responses;
         }
 
+        // 将 MetadataRequest 追加到 Selector
         long metadataTimeout = metadataUpdater.maybeUpdate(now);
+
         long telemetryTimeout = telemetrySender != null ? telemetrySender.maybeUpdate(now) : Integer.MAX_VALUE;
         try {
             this.selector.poll(Utils.min(timeout, metadataTimeout, telemetryTimeout, defaultRequestTimeoutMs));
@@ -1238,6 +1241,7 @@ public class NetworkClient implements KafkaClient {
                 return reconnectBackoffMs;
             }
 
+            // 将 MetadataRequest 追加到 Selector
             return maybeUpdate(now, leastLoadedNode.node());
         }
 
@@ -1340,7 +1344,10 @@ public class NetworkClient implements KafkaClient {
                 Metadata.MetadataRequestAndVersion requestAndVersion = metadata.newMetadataRequestAndVersion(now);
                 MetadataRequest.Builder metadataRequest = requestAndVersion.requestBuilder;
                 log.debug("Sending metadata request {} to node {}", metadataRequest, node);
+
+                // 将 MetadataRequest 追加到 Selector
                 sendInternalMetadataRequest(metadataRequest, nodeConnectionId, now);
+
                 inProgress = new InProgressData(requestAndVersion.requestVersion, requestAndVersion.isPartialUpdate);
                 return defaultRequestTimeoutMs;
             }

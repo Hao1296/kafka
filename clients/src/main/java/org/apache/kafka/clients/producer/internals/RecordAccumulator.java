@@ -81,6 +81,10 @@ public class RecordAccumulator {
     private final boolean enableAdaptivePartitioning;
     private final BufferPool free;
     private final Time time;
+    /**
+     * 维护了各 Topic 的消息数据。
+     * “消息数据”具体指的是“各 partition 所对应的 ProducerBatch 列表”。
+     */
     private final ConcurrentMap<String /*topic*/, TopicInfo> topicInfoMap = new CopyOnWriteMap<>();
     private final ConcurrentMap<Integer /*nodeId*/, NodeLatencyStats> nodeStats = new CopyOnWriteMap<>();
     private final IncompleteBatches incomplete;
@@ -316,6 +320,8 @@ public class RecordAccumulator {
                     if (partitionChanged(topic, topicInfo, partitionInfo, dq, nowMs, cluster))
                         continue;
 
+                    // 尝试追加；若最后一个 ProducerBatch 已满，无法追加，
+                    // 则关闭该 ProducerBatch 的追加开关，然后直接返回 null，不执行追加操作
                     RecordAppendResult appendResult = tryAppend(timestamp, key, value, headers, callbacks, dq, nowMs);
                     if (appendResult != null) {
                         // If queue has incomplete batches we disable switch (see comments in updatePartitionInfo).
@@ -342,6 +348,7 @@ public class RecordAccumulator {
                     if (partitionChanged(topic, topicInfo, partitionInfo, dq, nowMs, cluster))
                         continue;
 
+                    // 创建一个新 ProducerBatch，并将消息 append 到该 ProducerBatch
                     RecordAppendResult appendResult = appendNewBatch(topic, effectivePartition, dq, timestamp, key, value, headers, callbacks, buffer, nowMs);
                     // Set buffer to null, so that deallocate doesn't return it back to free pool, since it's used in the batch.
                     if (appendResult.newBatchCreated)
@@ -954,7 +961,7 @@ public class RecordAccumulator {
      * @param maxSize           The maximum number of bytes to drain
      * @param now               The current unix time in milliseconds
      * @return A list of {@link ProducerBatch} for each node specified with total size less than the
-     * requested maxSize.
+     * requested maxSize. key=nodeId, value=对应节点下所有 ProducerBatch
      */
     public Map<Integer, List<ProducerBatch>> drain(MetadataSnapshot metadataSnapshot, Set<Node> nodes, int maxSize, long now) {
         if (nodes.isEmpty())

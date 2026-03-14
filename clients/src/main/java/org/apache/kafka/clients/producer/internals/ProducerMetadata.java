@@ -24,22 +24,28 @@ import org.apache.kafka.common.requests.MetadataRequest;
 import org.apache.kafka.common.requests.MetadataResponse;
 import org.apache.kafka.common.utils.LogContext;
 import org.apache.kafka.common.utils.Time;
-
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
+/**
+ * 维护本 Producer 实例涉及哪些 Topic，指明元数据的更新范围，无需处理 Server 端全量的元数据
+ */
 public class ProducerMetadata extends Metadata {
     // If a topic hasn't been accessed for this many milliseconds, it is removed from the cache.
     private final long metadataIdleMs;
 
-    /* Topics with expiry time */
+    /**
+     * Topics with expiry time
+     * 对于过期时间内仍然未被使用的 Topic，在下个 MetadataResponse 回调中会被 remove
+     */
     private final Map<String, Long> topics = new HashMap<>();
+    /**
+     * newTopics 是 topics.keys 的子集。
+     * 每次 MetadataResponse 的回调会从该集合中 remove 掉对应的 Topic。
+     *
+     * @see ProducerMetadata#update(int, MetadataResponse, boolean, long)
+     */
     private final Set<String> newTopics = new HashSet<>();
     private final Logger log;
     private final Time time;
@@ -98,6 +104,11 @@ public class ProducerMetadata extends Metadata {
         return topics.containsKey(topic);
     }
 
+    /**
+     * 在父类 Metadata 的逻辑框架下被自动触发，具体时机是每次 update。
+     *
+     * @return true=保留
+     */
     @Override
     public synchronized boolean retainTopic(String topic, boolean isInternal, long nowMs) {
         Long expireMs = topics.get(topic);
