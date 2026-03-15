@@ -16,12 +16,7 @@
  */
 package org.apache.kafka.clients;
 
-import org.apache.kafka.common.Cluster;
-import org.apache.kafka.common.ClusterResourceListener;
-import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.Node;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.Uuid;
+import org.apache.kafka.common.*;
 import org.apache.kafka.common.errors.InvalidMetadataException;
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
@@ -32,21 +27,12 @@ import org.apache.kafka.common.requests.MetadataResponse;
 import org.apache.kafka.common.requests.MetadataResponse.PartitionMetadata;
 import org.apache.kafka.common.utils.ExponentialBackoff;
 import org.apache.kafka.common.utils.LogContext;
-
 import org.slf4j.Logger;
 
 import java.io.Closeable;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -200,6 +186,8 @@ public class Metadata implements Closeable {
      *                                       In situations where it's not clear, it's best to use <i>true</i>.
      *
      * @return The current updateVersion before the update
+     * @see NetworkClient#poll(long, long)
+     * @see NetworkClient.DefaultMetadataUpdater#maybeUpdate(long)
      */
     public synchronized int requestUpdate(final boolean resetEquivalentResponseBackoff) {
         this.needFullUpdate = true;
@@ -213,6 +201,8 @@ public class Metadata implements Closeable {
      * Request an immediate update of the current cluster metadata info, because the caller is interested in
      * metadata that is being newly requested.
      * @return The current updateVersion before the update
+     * @see NetworkClient#poll(long, long)
+     * @see NetworkClient.DefaultMetadataUpdater#maybeUpdate(long)
      */
     public synchronized int requestUpdateForNewTopics() {
         // Override the timestamp of last refresh to let immediate update.

@@ -399,9 +399,9 @@ public class Sender implements Runnable {
         long notReadyTimeout = Long.MAX_VALUE;
         while (iter.hasNext()) {
             Node node = iter.next();
-            // 此处是在检查 connection 是否 ready
+            // 连接状态和限流检查
+            // 对于因连接状态而不 ready 的 node，ready 方法中还会发起 SYN
             if (!this.client.ready(node, now)) {
-                // 不 ready 的就在此轮发起 SYN，并在后续迭代中尝试发送消息数据
                 // Update just the readyTimeMs of the latency stats, so that it moves forward
                 // every time the batch is ready (then the difference between readyTimeMs and
                 // drainTimeMs would represent how long data is waiting for the node).

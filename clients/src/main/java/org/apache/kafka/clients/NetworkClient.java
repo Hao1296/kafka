@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.clients;
 
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.Cluster;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.Node;
@@ -526,6 +527,7 @@ public class NetworkClient implements KafkaClient {
      *
      * @param node The node
      * @param now the current timestamp
+     * @see ProducerConfig#MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION
      */
     private boolean canSendRequest(String node, long now) {
         return connectionStates.isReady(node, now) && selector.isChannelReady(node) &&
@@ -1212,6 +1214,7 @@ public class NetworkClient implements KafkaClient {
 
         @Override
         public long maybeUpdate(long now) {
+            // 计算“补偿”，即需要再等多长时间才能发起元数据查询请求
             // should we update our metadata?
             long timeToNextMetadataUpdate = metadata.timeToNextUpdate(now);
             long waitForMetadataFetch = hasFetchInProgress() ? defaultRequestTimeoutMs : 0;
@@ -1340,6 +1343,10 @@ public class NetworkClient implements KafkaClient {
         private long maybeUpdate(long now, Node node) {
             String nodeConnectionId = node.idString();
 
+            /* canSendRequest 中有两类检查：
+             * 1. 连接状态；
+             * 2. 发往目标节点，但为获得响应的请求数量是否达到了 maxInFlightRequestsPerConnection；
+             */
             if (canSendRequest(nodeConnectionId, now)) {
                 Metadata.MetadataRequestAndVersion requestAndVersion = metadata.newMetadataRequestAndVersion(now);
                 MetadataRequest.Builder metadataRequest = requestAndVersion.requestBuilder;
